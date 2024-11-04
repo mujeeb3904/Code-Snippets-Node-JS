@@ -1,0 +1,27 @@
+// index require files 
+
+const swaggerUi = require("swagger-ui-express");
+const swaggerDocument = require("./utils/swagger");
+
+// index middleware
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use(express.json());
+
+// .config or utils file
+const swaggerAutogen = require("swagger-autogen")();
+const doc = {
+  info: {
+    title: "Your API Title",
+    description: "API documentation description",
+  },
+  host: "localhost: 5000",
+  schemes: ["http"],
+};
+const outputFile = "./utils/swagger-output.json";
+const endpointsFiles = ["./route/register.js"];
+// comment out these lines when swagger generation done 
+swaggerAutogen(outputFile, endpointsFiles, doc).then(() => {
+  require("../index");
+});
+
+
