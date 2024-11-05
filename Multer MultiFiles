@@ -1,0 +1,55 @@
+const multer = require("multer");
+const path = require("path");
+
+// Path to save uploaded images
+const uploadPath = "D:/Authentication Flow/CMSI/";
+
+// Configure multer for multiple file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadPath);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now().toString()}-${file.originalname}`);
+  },
+});
+
+// Create the multer upload middleware for multiple files
+const CMSI = multer({ storage }).fields([
+  { name: "mainImage", maxCount: 1 },
+  { name: "bannerImage", maxCount: 1 },
+  { name: "thumbnailImage", maxCount: 1 },
+  { name: "ctaImage", maxCount: 1 },
+  { name: "authorImage", maxCount: 1 },
+  { name: "backgroundImage", maxCount: 1 },
+]);
+
+
+// Create new CMS document with uploaded files
+  const newCMS = new CMS({
+    mainImage: req.files["mainImage"] ? req.files["mainImage"][0].path : null,
+    bannerImage: req.files["bannerImage"]
+      ? req.files["bannerImage"][0].path
+      : null,
+    user_id: user._id,
+    name,
+    postSummery,
+    categoryOne,
+    thumbnailImage: req.files["thumbnailImage"]
+      ? req.files["thumbnailImage"][0].path
+      : null,
+    postBody,
+    ctaText,
+    ctaImage: req.files["ctaImage"] ? req.files["ctaImage"][0].path : null,
+    readTime,
+    authorName,
+    authorDescription,
+    authorImage: req.files["authorImage"]
+      ? req.files["authorImage"][0].path
+      : null,
+    backgroundImage: req.files["backgroundImage"]
+      ? req.files["backgroundImage"][0].path
+      : null,
+  });
+
+  const savedCMS = await newCMS.save();
