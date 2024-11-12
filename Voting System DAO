@@ -1,0 +1,144 @@
+// DAO Controller 
+const DAO = require("../model/DAOmodel");
+const User = require("../model/xMAG");
+const asyncHandler = require("express-async-handler");
+
+// Create new DAO
+const handleDaoAddition = asyncHandler(async (req, res) => {
+  const { question, description, options, fees } = req.body;
+
+  //  Check input fields
+  if (!question || !description || !options || !fees) {
+    return res.status(400).json({ message: "All fields are required" });
+  }
+
+  // Initialize votes for each option
+  const votes = new Map();
+  options.forEach((option) => votes.set(option, 0));
+
+  // Create new DAO
+  const newDAO = new DAO({
+    question,
+    description,
+    options,
+    votes,
+    fees,
+  });
+
+  // Save the new DAO to the database
+  await newDAO.save();
+
+  return res.json({
+    message: "New DAO created successfully",
+    newDAO,
+  });
+});
+
+// Cast vote on a DAO
+const handleCastVote = asyncHandler(async (req, res) => {
+  const { optionSelected } = req.body;
+  const daoId = req.params.daoId;
+  const userId = req.params.userId;
+
+  // Find the DAO by ID
+  const dao = await DAO.findById(daoId);
+  if (!dao) {
+    return res.status(404).json({ error: "DAO not found" });
+  }
+
+  // Find the user by ID
+  const user = await User.findById(userId);
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  // Check if the user has sufficient balance for voting
+  if (user.userMag < dao.minimumBalance) {
+    return res.status(403).json({ error: "Insufficient balance for voting" });
+  }
+
+  // Check if the user has already voted
+  // if (dao.voters.includes(userId)) {
+  //   return res.status(400).json({ error: "User has already voted" });
+  // }
+
+  // Increment the selected option's vote
+  dao.votes.set(optionSelected, dao.votes.get(optionSelected) + 1);
+  dao.totalVotes += 1;
+  dao.voters.push(userId);
+  await dao.save();
+
+  // Deduct the voting fee from the user's balance
+  user.userMag -= dao.fees;
+  await user.save();
+  return res.json({ message: "Vote cast successfully", dao });
+});
+
+// Get DAO by ID
+const handleGetDAOById = asyncHandler(async (req, res) => {
+  const daoId = req.params.daoId;
+  const dao = await DAO.findById(daoId);
+  if (!dao) {
+    return res.status(404).json({ error: "DAO not found" });
+  }
+  return res.json({ dao });
+});
+
+// Get all DAOs
+const handleGetAllDAO = asyncHandler(async (req, res) => {
+  const daos = await DAO.find();
+  return res.json({ daos });
+});
+// Delete DAO Voting
+const handleDeleteDAOById = asyncHandler(async (req, res) => {
+  const dao = await DAO.findByIdAndDelete();
+  return res.json({ msg: "Deleted Sucessfully." });
+});
+
+module.exports = {
+  handleDaoAddition,
+  handleGetDAOById,
+  handleGetAllDAO,
+  handleCastVote,
+  handleDeleteDAOById,
+};
+
+
+
+// DAO Schema 
+const mongoose = require("mongoose");
+const daoSchema = new mongoose.Schema({
+  question: {
+    type: String,
+  },
+  description: {
+    type: String,
+  },
+  options: {
+    type: [String],
+  },
+  votes: {
+    type: Map,
+    of: Number,
+    default: () => new Map(),
+  },
+  totalVotes: {
+    type: Number,
+    default: 0,
+  },
+  fees: {
+    type: Number,
+  },
+  voters: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+  ],
+  minimumBalance: {
+    type: Number,
+    default: 1000,
+  },
+});
+
+module.exports = mongoose.model("DAO", daoSchema);
